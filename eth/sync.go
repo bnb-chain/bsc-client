@@ -96,7 +96,45 @@ func (cs *chainSyncer) handlePeerEvent() bool {
 
 // loop runs in its own goroutine and launches the sync when necessary.
 func (cs *chainSyncer) loop() {
-	return
+	defer cs.handler.wg.Done()
+
+	cs.handler.blockFetcher.Start()
+	cs.handler.txFetcher.Start()
+	defer cs.handler.blockFetcher.Stop()
+	defer cs.handler.txFetcher.Stop()
+	defer cs.handler.downloader.Terminate()
+
+	// The force timer lowers the peer count threshold down to one when it fires.
+	// This ensures we'll always start sync even if there aren't enough peers.
+	cs.force = time.NewTimer(forceSyncCycle)
+	defer cs.force.Stop()
+
+	for {
+		if op := cs.nextSyncOp(); op != nil {
+			cs.startSync(op)
+		}
+		select {
+		case <-cs.peerEventCh:
+			// Peer information changed, recheck.
+		case <-cs.doneCh:
+			cs.doneCh = nil
+			cs.force.Reset(forceSyncCycle)
+			cs.forced = false
+		case <-cs.force.C:
+			cs.forced = true
+
+		case <-cs.handler.quitSync:
+			// Disable all insertion on the blockchain. This needs to happen before
+			// terminating the downloader because the downloader waits for blockchain
+			// inserts, and these can take a long time to finish.
+			cs.handler.chain.StopInsert()
+			cs.handler.downloader.Terminate()
+			if cs.doneCh != nil {
+				<-cs.doneCh
+			}
+			return
+		}
+	}
 }
 
 // nextSyncOp determines whether sync is required at this time.
@@ -195,10 +233,6 @@ func (cs *chainSyncer) startSync(op *chainSyncOp) {
 // doSync synchronizes the local blockchain with a remote peer.
 func (h *handler) doSync(op *chainSyncOp) error {
 	// Run the sync cycle, and disable snap sync if we're past the pivot block
-	if op.mode == downloader.NoSync {
-		return nil
-	}
-
 	err := h.downloader.LegacySync(op.peer.ID(), op.head, op.td, h.chain.Config().TerminalTotalDifficulty, op.mode)
 	if err != nil {
 		return err

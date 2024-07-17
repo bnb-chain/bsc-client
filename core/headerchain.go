@@ -490,7 +490,6 @@ func (hc *HeaderChain) GetTd(hash common.Hash, number uint64) *big.Int {
 // GetHeader retrieves a block header from the database by hash and number,
 // caching it if found.
 func (hc *HeaderChain) GetHeader(hash common.Hash, number uint64) *types.Header {
-
 	// Short circuit if the header's already in the cache, retrieve otherwise
 	if hash != (common.Hash{}) {
 		if header, ok := hc.headerCache.Get(hash); ok {

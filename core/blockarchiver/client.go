@@ -119,7 +119,8 @@ func (c *Client) GetBundleBlocksRange(blockNum uint64) (uint64, uint64, error) {
 	return startSlot, endSlot, nil
 }
 
-func (c *Client) GetBlocksByRange(blockNum uint64) ([]*Block, error) {
+// GetBundleBlocksByBlockNum returns the bundle blocks by block number that within the range
+func (c *Client) GetBundleBlocksByBlockNum(blockNum uint64) ([]*Block, error) {
 	payload := preparePayload("eth_getBundledBlockByNumber", []interface{}{Int64ToHex(int64(blockNum))})
 	body, err := c.postRequest(payload)
 	if err != nil {
@@ -133,6 +134,7 @@ func (c *Client) GetBlocksByRange(blockNum uint64) ([]*Block, error) {
 	return getBlocksResp.Result, nil
 }
 
+// postRequest sends a POST request to the block archiver service
 func (c *Client) postRequest(payload map[string]interface{}) ([]byte, error) {
 	// Encode payload to JSON
 	payloadBytes, err := json.Marshal(payload)
@@ -162,6 +164,7 @@ func (c *Client) postRequest(payload map[string]interface{}) ([]byte, error) {
 	return body, nil
 }
 
+// preparePayload prepares the payload for the request
 func preparePayload(method string, params []interface{}) map[string]interface{} {
 	return map[string]interface{}{
 		"jsonrpc": "2.0",

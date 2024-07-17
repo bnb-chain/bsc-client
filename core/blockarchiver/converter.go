@@ -63,7 +63,6 @@ func convertBlock(block *Block) (*GeneralBlock, error) {
 	ts, err := HexToUint64(block.Timestamp)
 	if err != nil {
 		return nil, err
-
 	}
 	nonce, err := HexToUint64(block.Nonce)
 	if err != nil {

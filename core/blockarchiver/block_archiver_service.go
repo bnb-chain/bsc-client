@@ -126,7 +126,7 @@ func (c *BlockArchiverService) getBlockByNumber(number uint64) (*types.Body, *ty
 	c.requestLock.AddRange(start, end)
 	defer c.requestLock.RemoveRange(start, end)
 
-	blocks, err := c.client.GetBlocksByRange(number)
+	blocks, err := c.client.GetBundleBlocksByBlockNum(number)
 	if err != nil {
 		return nil, nil, err
 	}
