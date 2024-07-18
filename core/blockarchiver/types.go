@@ -114,7 +114,7 @@ type Range struct {
 type RequestLock struct {
 	rangeMap  map[uint64]Range
 	lookupMap map[uint64]bool
-	mu        sync.Mutex
+	mu        sync.RWMutex
 }
 
 // NewRequestLock creates a new RequestLock
@@ -127,8 +127,8 @@ func NewRequestLock() *RequestLock {
 
 // IsWithinAnyRange checks if the number is within any of the cached ranges
 func (rc *RequestLock) IsWithinAnyRange(num uint64) bool {
-	rc.mu.Lock()
-	defer rc.mu.Unlock()
+	rc.mu.RLock()
+	defer rc.mu.RUnlock()
 	_, exists := rc.lookupMap[num]
 	return exists
 }
@@ -137,11 +137,7 @@ func (rc *RequestLock) IsWithinAnyRange(num uint64) bool {
 func (rc *RequestLock) AddRange(from, to uint64) {
 	rc.mu.Lock()
 	defer rc.mu.Unlock()
-
-	// Add the range to the rangeMap
 	rc.rangeMap[from] = Range{from, to}
-
-	// Update the lookupMap for fast lookup
 	for i := from; i <= to; i++ {
 		rc.lookupMap[i] = true
 	}
@@ -151,11 +147,7 @@ func (rc *RequestLock) AddRange(from, to uint64) {
 func (rc *RequestLock) RemoveRange(from, to uint64) {
 	rc.mu.Lock()
 	defer rc.mu.Unlock()
-
-	// Remove the range from the rangeMap
 	delete(rc.rangeMap, from)
-
-	// Update the lookupMap for fast lookup
 	for i := from; i <= to; i++ {
 		delete(rc.lookupMap, i)
 	}

@@ -118,14 +118,14 @@ func (c *BlockArchiverService) getBlockByNumber(number uint64) (*types.Body, *ty
 	// fetch the bundle range
 	log.Info("fetching bundle of blocks", "number", number)
 	start, end, err := c.client.GetBundleBlocksRange(number)
+	log.Debug("bundle of blocks", "start", start, "end", end, "err", err)
 	if err != nil {
 		return nil, nil, err
 	}
-
 	// add lock to avoid concurrent fetching of the same bundle of blocks
 	c.requestLock.AddRange(start, end)
 	defer c.requestLock.RemoveRange(start, end)
-
+	//todo can fetch the bundle by request SP directly and extract blocks instead of calling the block archiver service if bundle name is known.
 	blocks, err := c.client.GetBundleBlocksByBlockNum(number)
 	if err != nil {
 		return nil, nil, err
@@ -147,7 +147,6 @@ func (c *BlockArchiverService) getBlockByNumber(number uint64) (*types.Body, *ty
 			header = block.Header()
 		}
 	}
-
 	return body, header, nil
 }
 

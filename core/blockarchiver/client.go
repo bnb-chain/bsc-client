@@ -35,7 +35,7 @@ func New(blockHubHost string) (*Client, error) {
 }
 
 func (c *Client) GetBlockByHash(hash common.Hash) (*Block, error) {
-	payload := preparePayload("eth_getBlockByHash", []interface{}{hash.String()})
+	payload := preparePayload("eth_getBlockByHash", []interface{}{hash.String(), "true"})
 	body, err := c.postRequest(payload)
 	if err != nil {
 		return nil, err
@@ -49,7 +49,7 @@ func (c *Client) GetBlockByHash(hash common.Hash) (*Block, error) {
 }
 
 func (c *Client) GetBlockByNumber(number uint64) (*Block, error) {
-	payload := preparePayload("eth_getBlockByNumber", []interface{}{Int64ToHex(int64(number))})
+	payload := preparePayload("eth_getBlockByNumber", []interface{}{Int64ToHex(int64(number)), "true"})
 	body, err := c.postRequest(payload)
 	if err != nil {
 		return nil, err
@@ -63,14 +63,7 @@ func (c *Client) GetBlockByNumber(number uint64) (*Block, error) {
 }
 
 func (c *Client) GetLatestBlock() (*Block, error) {
-	payload := map[string]interface{}{
-		"jsonrpc": "2.0",
-		"method":  "eth_getBlockByNumber",
-		// todo mock the latest 2000
-		"Params": []interface{}{"0x7D0"},
-		"id":     1,
-	}
-
+	payload := preparePayload("eth_getBlockByNumber", []interface{}{"latest", "true"})
 	body, err := c.postRequest(payload)
 	if err != nil {
 		return nil, err

@@ -3193,5 +3193,6 @@ func (bc *BlockChain) updateCurrentHeader() error {
 	headBlockGauge.Update(int64(header.Number.Uint64()))
 
 	bc.hc.tdCache.Add(block.Hash(), block.TotalDifficulty)
+	log.Info("update current header", "number", header.Number, "hash", header.Hash())
 	return nil
 }
