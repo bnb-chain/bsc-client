@@ -304,9 +304,9 @@ func convertBlock(block *Block) (*GeneralBlock, error) {
 				Value:      uint256.NewInt(val.Uint64()),
 				Data:       input,
 				AccessList: accessList,
-				V:          uint256.NewInt(v.Uint64()),
-				R:          uint256.NewInt(r.Uint64()),
-				S:          uint256.NewInt(s.Uint64()),
+				V:          uint256.MustFromBig(v),
+				R:          uint256.MustFromBig(r),
+				S:          uint256.MustFromBig(s),
 				BlobFeeCap: uint256.NewInt(maxFeePerBlobGas.Uint64()),
 				BlobHashes: blobHashes,
 			})
