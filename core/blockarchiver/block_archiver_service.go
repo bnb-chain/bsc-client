@@ -1,6 +1,7 @@
 package blockarchiver
 
 import (
+	"context"
 	"errors"
 	"time"
 
@@ -13,6 +14,7 @@ import (
 const (
 	GetBlockRetry         = 3
 	GetBlockRetryInterval = 2 * time.Second
+	RPCTimeout            = 10 * time.Second
 )
 
 var _ BlockArchiver = (*BlockArchiverService)(nil)
@@ -38,12 +40,12 @@ type BlockArchiverService struct {
 
 // NewBlockArchiverService creates a new block archiver service
 // the bodyCache and headerCache are injected from the BlockChain
-func NewBlockArchiverService(blockHub string,
+func NewBlockArchiverService(blockArchiver, sp, bucketName string,
 	bodyCache *lru.Cache[common.Hash, *types.Body],
 	headerCache *lru.Cache[common.Hash, *types.Header],
 	cacheSize int,
 ) (BlockArchiver, error) {
-	client, err := New(blockHub)
+	client, err := New(blockArchiver, sp, bucketName)
 	if err != nil {
 		return nil, err
 	}
@@ -60,12 +62,16 @@ func NewBlockArchiverService(blockHub string,
 
 // GetLatestBlock returns the latest block
 func (c *BlockArchiverService) GetLatestBlock() (*GeneralBlock, error) {
-	blockResp, err := c.client.GetLatestBlock()
+	ctx, cancel := context.WithTimeout(context.Background(), RPCTimeout)
+	defer cancel()
+	blockResp, err := c.client.GetLatestBlock(ctx)
 	if err != nil {
+		log.Error("failed to get latest block", "err", err)
 		return nil, err
 	}
 	block, err := convertBlock(blockResp)
 	if err != nil {
+		log.Error("failed to convert block", "block", blockResp, "err", err)
 		return nil, err
 	}
 	return block, nil
@@ -75,6 +81,7 @@ func (c *BlockArchiverService) GetLatestBlock() (*GeneralBlock, error) {
 func (c *BlockArchiverService) GetLatestHeader() (*types.Header, error) {
 	block, err := c.GetLatestBlock()
 	if err != nil {
+		log.Error("failed to get latest block", "err", err)
 		return nil, err
 	}
 	return block.Header(), nil
@@ -82,9 +89,11 @@ func (c *BlockArchiverService) GetLatestHeader() (*types.Header, error) {
 
 // GetBlockByNumber returns the block by number
 func (c *BlockArchiverService) GetBlockByNumber(number uint64) (*types.Body, *types.Header, error) {
+	log.Info("get block by number", "number", number)
 	// check if the block is in the cache
 	hash, found := c.hashCache.Get(number)
 	if found {
+		log.Debug("GetBlockByNumber found in cache", number)
 		body, foundB := c.bodyCache.Get(hash)
 		header, foundH := c.headerCache.Get(hash)
 		if foundB && foundH {
@@ -100,6 +109,7 @@ func (c *BlockArchiverService) getBlockByNumber(number uint64) (*types.Body, *ty
 	// if the number is within any of the ranges, should not fetch the bundle from the block archiver service but
 	// wait for a while and fetch from the cache
 	if c.requestLock.IsWithinAnyRange(number) {
+		log.Info("getBlockByNumber is within any range", number)
 		// wait for a while, and fetch from the cache
 		for retry := 0; retry < GetBlockRetry; retry++ {
 			hash, found := c.hashCache.Get(number)
@@ -117,17 +127,29 @@ func (c *BlockArchiverService) getBlockByNumber(number uint64) (*types.Body, *ty
 	}
 	// fetch the bundle range
 	log.Info("fetching bundle of blocks", "number", number)
-	start, end, err := c.client.GetBundleBlocksRange(number)
-	log.Debug("bundle of blocks", "start", start, "end", end, "err", err)
+	ctx, cancel := context.WithTimeout(context.Background(), RPCTimeout)
+	defer cancel()
+
+	bundleName, err := c.client.GetBundleName(ctx, number)
 	if err != nil {
+		log.Error("failed to get bundle name", "number", number, "err", err)
+		return nil, nil, err
+	}
+
+	start, end, err := ParseBundleName(bundleName)
+	if err != nil {
+		log.Error("failed to parse bundle name", "bundleName", bundleName, "err", err)
 		return nil, nil, err
 	}
 	// add lock to avoid concurrent fetching of the same bundle of blocks
 	c.requestLock.AddRange(start, end)
 	defer c.requestLock.RemoveRange(start, end)
-	//todo can fetch the bundle by request SP directly and extract blocks instead of calling the block archiver service if bundle name is known.
-	blocks, err := c.client.GetBundleBlocksByBlockNum(number)
+	ctx, cancel = context.WithTimeout(context.Background(), RPCTimeout)
+	defer cancel()
+
+	blocks, err := c.client.GetBundleBlocks(ctx, bundleName)
 	if err != nil {
+		log.Error("failed to get bundle blocks", "bundleName", bundleName, "err", err)
 		return nil, nil, err
 	}
 	var body *types.Body
@@ -137,6 +159,7 @@ func (c *BlockArchiverService) getBlockByNumber(number uint64) (*types.Body, *ty
 	for _, b := range blocks {
 		block, err := convertBlock(b)
 		if err != nil {
+			log.Error("failed to convert block", "block", b, "err", err)
 			return nil, nil, err
 		}
 		c.bodyCache.Add(block.Hash(), block.Body())
@@ -152,21 +175,26 @@ func (c *BlockArchiverService) getBlockByNumber(number uint64) (*types.Body, *ty
 
 // GetBlockByHash returns the block by hash
 func (c *BlockArchiverService) GetBlockByHash(hash common.Hash) (*types.Body, *types.Header, error) {
+	log.Info("get block by hash", "hash", hash)
 	body, foundB := c.bodyCache.Get(hash)
 	header, foundH := c.headerCache.Get(hash)
 	if foundB && foundH {
 		return body, header, nil
 	}
-
-	block, err := c.client.GetBlockByHash(hash)
+	ctx, cancel := context.WithTimeout(context.Background(), RPCTimeout)
+	defer cancel()
+	block, err := c.client.GetBlockByHash(ctx, hash)
 	if err != nil {
+		log.Error("failed to get block by hash", "hash", hash, "err", err)
 		return nil, nil, err
 	}
 	if block == nil {
+		log.Debug("block is nil", "hash", hash)
 		return nil, nil, nil
 	}
 	number, err := HexToUint64(block.Number)
 	if err != nil {
+		log.Error("failed to convert block number", "block", block, "err", err)
 		return nil, nil, err
 	}
 	return c.getBlockByNumber(number)

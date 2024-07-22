@@ -2,6 +2,8 @@ package blockarchiver
 
 import (
 	"math/big"
+	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/ethereum/go-ethereum/core/types"
@@ -151,4 +153,17 @@ func (rc *RequestLock) RemoveRange(from, to uint64) {
 	for i := from; i <= to; i++ {
 		delete(rc.lookupMap, i)
 	}
+}
+
+func ParseBundleName(bundleName string) (uint64, uint64, error) {
+	parts := strings.Split(bundleName, "_")
+	startHeight, err := strconv.ParseUint(parts[1][1:], 10, 64)
+	if err != nil {
+		return 0, 0, err
+	}
+	endHeight, err := strconv.ParseUint(parts[2][1:], 10, 64)
+	if err != nil {
+		return 0, 0, err
+	}
+	return startHeight, endHeight, nil
 }

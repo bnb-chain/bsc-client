@@ -440,6 +440,8 @@ func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, genesis *Genesis
 	// block archiver service
 	blockArchiverService, err := blockarchiver.NewBlockArchiverService(
 		bc.blockArchiverConfig.RPCAddress,
+		bc.blockArchiverConfig.SPAddress,
+		bc.blockArchiverConfig.BucketName,
 		bc.bodyCache,
 		bc.hc.headerCache,
 		cacheSize,

@@ -68,7 +68,7 @@ func convertBlock(block *Block) (*GeneralBlock, error) {
 	if err != nil {
 		return nil, err
 	}
-	totalDiffficulty, err := HexToBigInt(block.TotalDifficulty)
+	totalDifficulty, err := HexToBigInt(block.TotalDifficulty)
 	if err != nil {
 		return nil, err
 	}
@@ -316,6 +316,6 @@ func convertBlock(block *Block) (*GeneralBlock, error) {
 	newBlock := types.NewBlockWithHeader(header).WithBody(txs, nil)
 	return &GeneralBlock{
 		Block:           newBlock,
-		TotalDifficulty: totalDiffficulty,
+		TotalDifficulty: totalDifficulty,
 	}, nil
 }
