@@ -201,11 +201,7 @@ func (c *BlockArchiverService) GetBlockByHash(hash common.Hash) (*types.Body, *t
 }
 
 func (c *BlockArchiverService) cacheStats() {
-	ticker := time.NewTicker(10 * time.Second)
-	for {
-		select {
-		case <-ticker.C:
-			log.Info("block archiver cache stats", "bodyCache", c.bodyCache.Len(), "headerCache", c.headerCache.Len(), "hashCache", c.hashCache.Len())
-		}
+	for range time.NewTicker(10 * time.Second).C {
+		log.Info("block archiver cache stats", "bodyCache", c.bodyCache.Len(), "headerCache", c.headerCache.Len(), "hashCache", c.hashCache.Len())
 	}
 }
