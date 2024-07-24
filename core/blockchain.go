@@ -3167,14 +3167,15 @@ func (bc *BlockChain) GetTrieFlushInterval() time.Duration {
 }
 
 func (bc *BlockChain) UpdateCurrentHeaderLoop() {
-	ticket := time.NewTicker(10 * time.Second)
+	ticket := time.NewTicker(30 * time.Second)
 	defer ticket.Stop()
 	for {
 		select {
 		case <-ticket.C:
 			err := bc.updateCurrentHeader()
 			if err != nil {
-				return
+				log.Error("failed to update current header", "err", err)
+				continue
 			}
 		case <-bc.quit:
 			return
