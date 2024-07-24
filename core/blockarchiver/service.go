@@ -175,7 +175,9 @@ func (c *BlockArchiverService) getBlockByNumber(number uint64) (*types.Body, *ty
 
 // GetBlockByHash returns the block by hash
 func (c *BlockArchiverService) GetBlockByHash(hash common.Hash) (*types.Body, *types.Header, error) {
-	log.Info("get block by hash", "hash", hash)
+	log.Info("get block by hash", "hash", hash.Hex())
+	log.Info(hash.Hex())
+	// check if the block is in the cach
 	body, foundB := c.bodyCache.Get(hash)
 	header, foundH := c.headerCache.Get(hash)
 	if foundB && foundH {
