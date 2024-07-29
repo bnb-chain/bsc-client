@@ -783,21 +783,30 @@ func (q *queue) DeliverBodies(id string, txLists [][]*types.Transaction, txListH
 
 	validate := func(index int, header *types.Header) error {
 		if txListHashes[index] != header.TxHash {
+			log.Error("Tx hash mismatch", "index", index, "header", header.Hash(), "want", txListHashes[index])
 			return errInvalidBody
 		}
 		if uncleListHashes[index] != header.UncleHash {
+			log.Error("Uncle hash mismatch", "index", index, "header", header.Hash(), "want", uncleListHashes[index])
 			return errInvalidBody
 		}
 		if header.WithdrawalsHash == nil {
 			// nil hash means that withdrawals should not be present in body
 			if withdrawalLists[index] != nil {
+				log.Error("Withdrawals hash mismatch 1", "index", index, "header", header.Hash(), "want", header.WithdrawalsHash)
 				return errInvalidBody
 			}
 		} else { // non-nil hash: body must have withdrawals
+
+			log.Info("Withdrawals list len", len(withdrawalLists))
 			if withdrawalLists[index] == nil {
+				log.Error("Withdrawals hash mismatch 2", "index", index, "header", header.Hash(), "want", header.WithdrawalsHash)
 				return errInvalidBody
 			}
+
+			log.Info("wd", "index", index, "hash", withdrawalListHashes[index])
 			if withdrawalListHashes[index] != *header.WithdrawalsHash {
+				log.Error("Withdrawals hash mismatch 3", "index", index, "header", header.Hash(), "want", withdrawalListHashes[index])
 				return errInvalidBody
 			}
 		}
@@ -811,27 +820,33 @@ func (q *queue) DeliverBodies(id string, txLists [][]*types.Transaction, txListH
 			// Validate the data blobs individually too
 			if tx.Type() == types.BlobTxType {
 				if len(tx.BlobHashes()) == 0 {
+					log.Error("BlobTx with no blobs", "index", index, "header", header.Hash())
 					return errInvalidBody
 				}
 				for _, hash := range tx.BlobHashes() {
 					if !kzg4844.IsValidVersionedHash(hash[:]) {
+						log.Error("Invalid blob hash", "index", index, "header", header.Hash(), "hash", hash)
 						return errInvalidBody
 					}
 				}
 				if tx.BlobTxSidecar() != nil {
+					log.Error("BlobTx with sidecar", "index", index, "header", header.Hash())
 					return errInvalidBody
 				}
 			}
 		}
 		if header.BlobGasUsed != nil {
 			if want := *header.BlobGasUsed / params.BlobTxBlobGasPerBlob; uint64(blobs) != want { // div because the header is surely good vs the body might be bloated
+				log.Error("Blob gas used mismatch", "index", index, "header", header.Hash(), "want", want, "have", blobs)
 				return errInvalidBody
 			}
 			if blobs > params.MaxBlobGasPerBlock/params.BlobTxBlobGasPerBlob {
+				log.Error("Too many blobs", "index", index, "header", header.Hash(), "have", blobs)
 				return errInvalidBody
 			}
 		} else {
 			if blobs != 0 {
+				log.Error("Blob gas used mismatch 2", "index", index, "header", header.Hash(), "want", 0, "have", blobs)
 				return errInvalidBody
 			}
 		}
