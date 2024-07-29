@@ -783,7 +783,7 @@ func (q *queue) DeliverBodies(id string, txLists [][]*types.Transaction, txListH
 
 	validate := func(index int, header *types.Header) error {
 		if txListHashes[index] != header.TxHash {
-			log.Error("Tx hash mismatch", "index", index, "header", header.Hash(), "want", txListHashes[index])
+			log.Error("Tx hash mismatch", "index", index, "header", header.Number.String(), "want", txListHashes[index])
 			return errInvalidBody
 		}
 		if uncleListHashes[index] != header.UncleHash {
