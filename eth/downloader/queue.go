@@ -787,7 +787,7 @@ func (q *queue) DeliverBodies(id string, txLists [][]*types.Transaction, txListH
 			return errInvalidBody
 		}
 		if uncleListHashes[index] != header.UncleHash {
-			log.Error("Uncle hash mismatch", "index", index, "header", header.Hash(), "want", uncleListHashes[index])
+			log.Error("Uncle hash mismatch", "index", index, "header", header.Number.String(), "want", uncleListHashes[index])
 			return errInvalidBody
 		}
 		if header.WithdrawalsHash == nil {
