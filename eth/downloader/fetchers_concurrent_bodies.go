@@ -100,7 +100,6 @@ func (q *bodyQueue) deliver(peer *peerConnection, packet *eth.Response) (int, er
 		peer.log.Trace("Delivered new batch of bodies", "count", len(txs), "accepted", accepted)
 	default:
 		peer.log.Debug("Failed to deliver retrieved bodies", "err", err)
-		panic(err)
 	}
 	return accepted, err
 }

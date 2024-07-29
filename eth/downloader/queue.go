@@ -798,13 +798,13 @@ func (q *queue) DeliverBodies(id string, txLists [][]*types.Transaction, txListH
 			}
 		} else { // non-nil hash: body must have withdrawals
 
-			log.Info("Withdrawals list len", len(withdrawalLists))
+			//log.Info("Withdrawals list len", "len", len(withdrawalLists))
 			if withdrawalLists[index] == nil {
 				log.Error("Withdrawals hash mismatch 2", "index", index, "header", header.Hash(), "want", header.WithdrawalsHash)
 				return errInvalidBody
 			}
 
-			log.Info("wd", "index", index, "hash", withdrawalListHashes[index])
+			//log.Info("wd", "index", index, "hash", withdrawalListHashes[index])
 			if withdrawalListHashes[index] != *header.WithdrawalsHash {
 				log.Error("Withdrawals hash mismatch 3", "index", index, "header", header.Hash(), "want", withdrawalListHashes[index])
 				return errInvalidBody
