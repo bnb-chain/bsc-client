@@ -313,7 +313,10 @@ func convertBlock(block *Block) (*GeneralBlock, error) {
 			txs = append(txs, transaction)
 		}
 	}
-	newBlock := types.NewBlockWithHeader(header).WithBody(txs, nil)
+	newBlock := types.NewBlockWithHeader(header).WithBody(txs, make([]*types.Header, 0))
+	if header.WithdrawalsHash != nil && *header.WithdrawalsHash == types.EmptyWithdrawalsHash {
+		newBlock = newBlock.WithWithdrawals(make([]*types.Withdrawal, 0))
+	}
 	return &GeneralBlock{
 		Block:           newBlock,
 		TotalDifficulty: totalDifficulty,
