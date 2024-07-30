@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/metrics"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -71,8 +72,11 @@ func IsDataAvailable(chain consensus.ChainHeaderReader, block *types.Block) (err
 	if highest == nil || highest.Number.Cmp(current.Number) < 0 {
 		highest = current
 	}
+	log.Info("Checking data availability", "block", block.Number(), "highest", highest.Number)
+
 	if block.NumberU64()+params.MinBlocksForBlobRequests < highest.Number.Uint64() {
 		// if we needn't check DA of this block, just clean it
+		log.Info("Cleaning sidecars", "block", block.Number())
 		block.CleanSidecars()
 		return nil
 	}
@@ -114,12 +118,15 @@ func IsDataAvailable(chain consensus.ChainHeaderReader, block *types.Block) (err
 	for i, tx := range blobTxs {
 		// check sidecar tx related
 		if sidecars[i].TxHash != tx.Hash() {
+			log.Info("TxHash mismatch", "sidecar", sidecars[i].TxHash, "tx", tx.Hash())
 			return fmt.Errorf("sidecar's TxHash mismatch with expected transaction, want: %v, have: %v", sidecars[i].TxHash, tx.Hash())
 		}
 		if sidecars[i].TxIndex != blobTxIndexes[i] {
+			log.Info("TxIndex mismatch 2", "sidecar", sidecars[i].TxIndex, "tx", blobTxIndexes[i])
 			return fmt.Errorf("sidecar's TxIndex mismatch with expected transaction, want: %v, have: %v", sidecars[i].TxIndex, blobTxIndexes[i])
 		}
 		if err := validateBlobSidecar(tx.BlobHashes(), sidecars[i]); err != nil {
+			log.Info("validateBlobSidecar error", "block", block.Number().String(), "err", err)
 			return err
 		}
 	}
