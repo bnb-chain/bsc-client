@@ -68,29 +68,17 @@ func (b *EthAPIBackend) SetHead(number uint64) {
 func (b *EthAPIBackend) HeaderByNumber(ctx context.Context, number rpc.BlockNumber) (*types.Header, error) {
 	// Pending block is only known by the miner
 	if number == rpc.PendingBlockNumber {
-		block := b.eth.miner.PendingBlock()
-		if block == nil {
-			return nil, errors.New("pending block is not available")
-		}
-		return block.Header(), nil
+		return nil, errors.New("get pending header is not supported")
 	}
 	// Otherwise resolve and return the block
 	if number == rpc.LatestBlockNumber {
 		return b.eth.blockchain.CurrentBlock(), nil
 	}
 	if number == rpc.FinalizedBlockNumber {
-		block := b.eth.blockchain.CurrentFinalBlock()
-		if block == nil {
-			return nil, errors.New("finalized block not found")
-		}
-		return block, nil
+		return nil, errors.New("get finalized header is not supported")
 	}
 	if number == rpc.SafeBlockNumber {
-		block := b.eth.blockchain.CurrentSafeBlock()
-		if block == nil {
-			return nil, errors.New("safe block not found")
-		}
-		return block, nil
+		return nil, errors.New("get safe header is not supported")
 	}
 	return b.eth.blockchain.GetHeaderByNumber(uint64(number)), nil
 }
@@ -119,11 +107,7 @@ func (b *EthAPIBackend) HeaderByHash(ctx context.Context, hash common.Hash) (*ty
 func (b *EthAPIBackend) BlockByNumber(ctx context.Context, number rpc.BlockNumber) (*types.Block, error) {
 	// Pending block is only known by the miner
 	if number == rpc.PendingBlockNumber {
-		block := b.eth.miner.PendingBlock()
-		if block == nil {
-			return nil, errors.New("pending block is not available")
-		}
-		return block, nil
+		return nil, errors.New("get pending block is not supported")
 	}
 	// Otherwise resolve and return the block
 	if number == rpc.LatestBlockNumber {
@@ -131,18 +115,10 @@ func (b *EthAPIBackend) BlockByNumber(ctx context.Context, number rpc.BlockNumbe
 		return b.eth.blockchain.GetBlock(header.Hash(), header.Number.Uint64()), nil
 	}
 	if number == rpc.FinalizedBlockNumber {
-		header := b.eth.blockchain.CurrentFinalBlock()
-		if header == nil {
-			return nil, errors.New("finalized block not found")
-		}
-		return b.eth.blockchain.GetBlock(header.Hash(), header.Number.Uint64()), nil
+		return nil, errors.New("get finalized block is not supported")
 	}
 	if number == rpc.SafeBlockNumber {
-		header := b.eth.blockchain.CurrentSafeBlock()
-		if header == nil {
-			return nil, errors.New("safe block not found")
-		}
-		return b.eth.blockchain.GetBlock(header.Hash(), header.Number.Uint64()), nil
+		return nil, errors.New("get safe block is not supported")
 	}
 	return b.eth.blockchain.GetBlockByNumber(uint64(number)), nil
 }
