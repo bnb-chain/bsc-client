@@ -163,36 +163,42 @@ func (bc *BlockChain) HasFastBlock(hash common.Hash, number uint64) bool {
 // GetBlock retrieves a block from the database by hash and number,
 // caching it if found.
 func (bc *BlockChain) GetBlock(hash common.Hash, number uint64) *types.Block {
-	// Short circuit if the block's already in the cache, retrieve otherwise
-	if block, ok := bc.blockCache.Get(hash); ok {
-		return block
+	var (
+		body   *types.Body
+		header *types.Header
+	)
+	if hash == (common.Hash{}) {
+		body, header, _ = bc.blockArchiverService.GetBlockByNumber(number)
+	} else {
+		body, header, _ = bc.blockArchiverService.GetBlockByHash(hash)
 	}
-	block := rawdb.ReadBlock(bc.db, hash, number)
-	if block == nil {
+	if body == nil || header == nil {
 		return nil
 	}
-	// Cache the found block for next time and return
-	bc.blockCache.Add(block.Hash(), block)
-	return block
+	return types.NewBlockWithHeader(header).WithBody(body.Transactions, body.Uncles).WithWithdrawals(body.Withdrawals)
 }
 
 // GetBlockByHash retrieves a block from the database by hash, caching it if found.
 func (bc *BlockChain) GetBlockByHash(hash common.Hash) *types.Block {
-	number := bc.hc.GetBlockNumber(hash)
-	if number == nil {
+	body, header, _ := bc.blockArchiverService.GetBlockByHash(hash)
+	if body == nil || header == nil {
 		return nil
 	}
-	return bc.GetBlock(hash, *number)
+	return types.NewBlockWithHeader(header).WithBody(body.Transactions, body.Uncles).WithWithdrawals(body.Withdrawals)
 }
 
 // GetBlockByNumber retrieves a block from the database by number, caching it
 // (associated with its hash) if found.
 func (bc *BlockChain) GetBlockByNumber(number uint64) *types.Block {
-	hash := rawdb.ReadCanonicalHash(bc.db, number)
-	if hash == (common.Hash{}) {
+	if number == 0 {
+		genesisHash := rawdb.ReadCanonicalHash(bc.db, 0)
+		return rawdb.ReadBlock(bc.db, genesisHash, number)
+	}
+	body, header, _ := bc.blockArchiverService.GetBlockByNumber(number)
+	if body == nil || header == nil {
 		return nil
 	}
-	return bc.GetBlock(hash, number)
+	return types.NewBlockWithHeader(header).WithBody(body.Transactions, body.Uncles).WithWithdrawals(body.Withdrawals)
 }
 
 // GetBlocksFromHash returns the block corresponding to hash and up to n-1 ancestors.
